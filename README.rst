@@ -19,7 +19,7 @@ TrajNet++ is a large scale interaction-centric trajectory forecasting benchmark 
 
 Milestone 1: Getting Started
 ----------------------------
-The purpose of this first milestone is to get used to work with the TrajNet++ framework and its command line interface for training and evaluating models.
+The purpose of this first milestone is to get used to work with the TrajNet++ framework and its command line interface for training and evaluating different models.
 
 1) Visualizations
 ~~~~~~~~~~~~~~~~~
