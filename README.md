@@ -167,7 +167,7 @@ Here is our results comparison in terms of FDE and Col-I of our D-LSTM models tr
 | 9     | 25          | 15          | 5e-04 | 4               | **1.21** | 6.44  |
 | **10**    | **25**          | **15**          | **1e-03** | **2.5**             | **1.22** | **5.55**  |
 
-
+[*Submission 10 link*](https://www.aicrowd.com/challenges/trajnet-a-trajectory-forecasting-challenge/submissions/138965).
 
 
 <a name="mi_2_obs"></a>
