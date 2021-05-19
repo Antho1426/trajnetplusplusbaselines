@@ -157,7 +157,7 @@ Here is our results comparison in terms of FDE and Col-I of our D-LSTM models tr
 | Subm. | Start epoch | Add. epochs | lr    | contrast_weight | FDE  | COL-I |
 |-------|-------------|-------------|-------|-----------------|------|-------|
 | 1     | 30          | 10          | 1e-04 | 2               | 1.22 | 6.03  |
-| 2     | 30          | 10          | 1e-04 | 2 and 5         | 1.23 | 5.85  |
+| 2     | 30          | 10          | 1e-04 | 5               | 1.23 | 5.85  |
 | 3     | 30          | 15          | 1e-02 | 1               | 1.34 | 7.16  |
 | 4     | 30          | 10          | 1e-03 | 3               | 1.25 | **5.25**  |
 | 5     | 30          | 15          | 1e-03 | 4               | 1.22 | 6.5   |
