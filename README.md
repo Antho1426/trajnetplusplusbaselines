@@ -164,8 +164,8 @@ Here is our results comparison in terms of FDE and Col-I of our D-LSTM models tr
 | 6     | 25          | 10          | 1e-03 | 5               | 1.23 | 5.61  |
 | 7     | 30          | 10          | 5e-03 | 1               | 1.27 | 6.32  |
 | 8     | 25          | 15          | 1e-03 | 2               | 1.23 | 5.85  |
-| 9     | 25          | 15          | 5e-04 | 4               | <mark>1.21</mark> | 6.44  |
-| 10    | 25          | 15          | 1e-03 | 2.5             | <span style="background-color:lightgreen">1.22</span> | <span style="background-color:lightgreen">5.55</span>  |
+| 9     | 25          | 15          | 5e-04 | 4               | <mark>1.21** | 6.44  |
+| 10    | 25          | 15          | 1e-03 | 2.5             | **1.22** | **5.55**  |
 
 
 
