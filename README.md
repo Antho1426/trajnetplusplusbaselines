@@ -165,9 +165,11 @@ Here is our results comparison in terms of FDE and Col-I of our D-LSTM models tr
 | 7     | 30          | 10          | 5e-03 | 1               | 1.27 | 6.32  |
 | 8     | 25          | 15          | 1e-03 | 2               | 1.23 | 5.85  |
 | 9     | 25          | 15          | 5e-04 | 4               | **1.21** | 6.44  |
-| **10**    | **25**          | **15**          | **1e-03** | **2.5**             | **1.22** | **5.55**  |
+| 10    | 25          | 15          | 1e-03 | 2.5             | 1.22 | 5.55  |
+| **11**    | **25**          | **15**          | **1e-03** | **0.5**             | **1.22** | **5.43**  |
 
-[*Submission 10 link*](https://www.aicrowd.com/challenges/trajnet-a-trajectory-forecasting-challenge/submissions/138965).
+
+[*Submission 11 link*](https://www.aicrowd.com/challenges/trajnet-a-trajectory-forecasting-challenge/submissions/139231).
 
 
 <a name="mi_2_obs"></a>
@@ -177,4 +179,4 @@ From the results we obtain, we can see that in comparison to our best submission
 
 Concerning the FDE (Final Displacement Error), even if this metric didn't decrease that much in comparison with milestone 1 (our lowest FDE was obtained with submission 9), we can conclude that this new NCE loss remains all the same competitive in the FDE by not impacting it too much.
 
-To sum up, the overall best performing model we trained (i.e. the one embedding jointly the lowest FDE and COL-I) is the one of submission 10. As said previously, the learning rate must be chosen wisely to allow the model to learn effectively. In our case, we have chosen to keep its default value (1e-3). In the first submissions we made, we started with a model that we had not submitted for milestone 1, but that we had trained to 30 epochs. Later, for fairer comparisons, we chose rather to fine-tune the best model we had submitted to AICrowd (i.e. the one from submission 2 of milestone 1 trained to 25 epochs) even though it has been trained on 5 less epochs. We also observed that there doesn't seem to be much improvement between 10 and 15 additional epochs. Indeed, the learning curve should apparently gently tend towards a zero slope from 10 additional epochs. Finally, the contrastive weight (introduced in milestone 2) was the new critical hyperparameter we had to tune. From our tests, we deduce that an optimal value for this parameter is situated between 2 and 4 in order to influence the global loss in a reasonable way and to reduce the COL-I metric.
+To sum up, the overall best performing model we trained (i.e. the one embedding jointly the lowest FDE and COL-I) is the one of submission 11. As said previously, the learning rate must be chosen wisely to allow the model to learn effectively. In our case, we have chosen to keep its default value (1e-3). In the first submissions we made, we started with a model that we had not submitted for milestone 1, but that we had trained to 30 epochs. Later, for fairer comparisons, we chose rather to fine-tune the best model we had submitted to AICrowd (i.e. the one from submission 2 of milestone 1 trained to 25 epochs) even though it has been trained on 5 less epochs. We also observed that there doesn't seem to be much improvement between 10 and 15 additional epochs. Indeed, the learning curve should apparently gently tend towards a zero slope from 10 additional epochs. Finally, the contrastive weight (introduced in milestone 2) was the new critical hyperparameter we had to tune. From our tests, we deduce that an optimal value for this parameter is situated between 0.5 and 3 in order to influence the global loss in a reasonable way and to reduce the COL-I metric.
