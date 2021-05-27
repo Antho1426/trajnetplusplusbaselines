@@ -115,7 +115,7 @@ class SGAN(torch.nn.Module):
         pred_list = []
         for _ in range(self.k):
             # print("k:", k)
-            rel_pred_scene, pred_scene = self.generator(observed, goals, batch_split, prediction_truth, n_predict)
+            rel_pred_scene, pred_scene, batch_feat = self.generator(observed, goals, batch_split, prediction_truth, n_predict)
             rel_pred_list.append(rel_pred_scene)
             pred_list.append(pred_scene)
 
@@ -128,7 +128,7 @@ class SGAN(torch.nn.Module):
             scores_fake = self.discriminator(observed, pred_scene[-pred_length:], goals, batch_split)
             return rel_pred_list, pred_list, scores_real, scores_fake
 
-        return rel_pred_list, pred_list, None, None
+        return rel_pred_list, pred_list, None, None, batch_feat
 
 class LSTMGenerator(torch.nn.Module):
     def __init__(self, embedding_dim=64, hidden_dim=128, pool=None, pool_to_input=True, goal_dim=None, goal_flag=False,
@@ -382,8 +382,15 @@ class LSTMGenerator(torch.nn.Module):
             (observed[-1:], prediction_truth[:-1])
         )))
 
+
+
+
         # Add Noise
         hidden_cell_state = self.adding_noise(hidden_cell_state)
+        #by gpuBurner
+        hidden_state_memory = []
+        hidden_state_memory.append(torch.stack([h for h in hidden_cell_state[0]], dim=0))
+
 
         # decoder, predictions
         for obs1, obs2 in zip(prediction_truth[:-1], prediction_truth[1:]):
@@ -402,15 +409,19 @@ class LSTMGenerator(torch.nn.Module):
             # concat predictions
             normals.append(normal)
             positions.append(obs2 + normal[:, :2])  # no sampling, just mean
+            #by GPUburner
+            hidden_state_memory.append(torch.stack([h for h in hidden_cell_state[0]], dim=0))
 
-        # Pred_scene: Tensor [seq_length, num_tracks, 2]
+    # Pred_scene: Tensor [seq_length, num_tracks, 2]
         #    Absolute positions of all pedestrians
         # Rel_pred_scene: Tensor [seq_length, num_tracks, 5]
         #    Velocities of all pedestrians
         rel_pred_scene = torch.stack(normals, dim=0)
         pred_scene = torch.stack(positions, dim=0)
 
-        return rel_pred_scene, pred_scene
+        feat_scene = torch.stack(hidden_state_memory, dim=0)
+
+        return rel_pred_scene, pred_scene, feat_scene
 
 class LSTMDiscriminator(torch.nn.Module):
     def __init__(self, embedding_dim=64, hidden_dim=128, pool=None, pool_to_input=True, goal_dim=None, goal_flag=False):
