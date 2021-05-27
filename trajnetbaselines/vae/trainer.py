@@ -142,7 +142,7 @@ class Trainer(object):
                 preprocess_time = time.time() - scene_start
 
                 ## Train Batch
-                loss = self.train_batch(batch_scene, batch_scene_goal, batch_split)
+                loss = self.train_batch(batch_scene, batch_scene_goal, batch_split) # + contrastive loss ????
                 epoch_loss += loss
                 total_time = time.time() - scene_start
 

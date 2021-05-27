@@ -28,8 +28,9 @@ class SocialNCE():
         self.horizon = horizon
 
         # sampling param
-        self.noise_local = 0.05  # TODO maybe 0.1
+        self.noise_local = 0.05  # TODO maybe 0.1    0.025
         self.min_seperation = 0.2  # #TODO increase this ? (uncomfortable zone is up to 20[cm])
+        self.max_seperation = 5  # #TODO increase this ? (uncomfortable zone is up to 20[cm])
         self.agent_zone = self.min_seperation * torch.tensor(
             [[1.0, 0.0], [-1.0, 0.0], [0.0, 1.0], [0.0, -1.0], [0.707, 0.707],
              [0.707, -0.707], [-0.707, 0.707], [-0.707, -0.707], [0.0, 0.0]])
@@ -79,13 +80,13 @@ class SocialNCE():
         # traj_primary: 21x2 (time x coordinate)
         # traj_neighbour: 21x3x2 (time x persons x coordinate)
 
-        (sample_pos, sample_neg) = self._sampling_spatial(batch_scene, batch_split)  # TODO pytorch tensor instead
+        (sample_pos, sample_neg) = self._sampling_spatial(batch_scene, batch_split)
 
         # visualisation
         visualize = 1
         if visualize:
             for i in range(batch_split.shape[0] - 1):  # for each scene
-                """
+
                 import matplotlib
                 matplotlib.use('Agg')
                 import matplotlib.pyplot as plt
@@ -94,18 +95,7 @@ class SocialNCE():
                 fig.set_size_inches(16, 9)
                 ax = fig.add_subplot(1, 1, 1)
 
-                # ax.plot(primary[:, 0], primary[:, 1], 'k-')
-                # for i in range(neighbor.size(1)):
-                #     ax.plot(neighbor[:, i, 0], neighbor[:, i, 1], 'b-.')
 
-                # Displaying the positions of the person of interest
-                # TODO: Remove next lines of comments once you have understood why we had a visualization problem here!
-                # True position
-                # False ❌:
-                # ax.scatter(batch_scene[self.obs_length, i, 0],
-                #            batch_scene[self.obs_length, i, 1],
-                #            label="person of interest true pos")
-                # Correct ✅:
                 ax.scatter(batch_scene[self.obs_length, batch_split[i], 0],
                            batch_scene[self.obs_length, batch_split[i], 1],
                            label="person of interest true pos")
@@ -132,7 +122,7 @@ class SocialNCE():
                 plt.savefig(fname, bbox_inches='tight', pad_inches=0)
                 plt.close(fig)
                 print(f'displayed samples {i}')
-                """
+            5/0
         # -----------------------------------------------------
         #              Lower-dimensional Embedding
         # -----------------------------------------------------
@@ -239,7 +229,7 @@ class SocialNCE():
         personOfInterestLocation = gt_future[:, batch_split[0:-1], :]  # (persons of interest x coordinates) --> for instance: 8 x 2
         noise_pos = np.random.multivariate_normal([0, 0], np.array([[c_e, 0], [0, c_e]]), (self.pred_length, 8))  # (2,)
         #                      8 x 2                   1 x 2
-        # sample_pos = personOfInterestLocation + noise.reshape(1, 2) # TODO, maybe diff noise for each person (/!\ --> apparently not necessary finally, according to Liu)
+        # sample_pos = personOfInterestLocation + noise.reshape(1, 2)
         #                      8 x 2             (2,)
         sample_pos = personOfInterestLocation + noise_pos
 
@@ -247,7 +237,7 @@ class SocialNCE():
 
         #_______negative sample____________
         nDirection = self.agent_zone.shape[0]
-        nMaxNeighbour = 50 # TODO re-tune
+        nMaxNeighbour = 50
 
         # sample_neg: (#persons of interest, #neigboor for this person of interest * #directions, #coordinates)
         # --> for instance: 8 x 12*9 x 2 = 8 x 108 x 2
@@ -308,7 +298,7 @@ class SocialNCE():
         personOfInterestLocation = gt_future[batch_split[0:-1], :]  # (persons of interest x coordinates) --> for instance: 8 x 2
         noise_pos = np.random.multivariate_normal([0, 0], np.array([[c_e, 0], [0, c_e]]), (personOfInterestLocation.shape[0]))  # (2,)
         #                      8 x 2                   1 x 2
-        # sample_pos = personOfInterestLocation + noise.reshape(1, 2) # TODO, maybe diff noise for each person (/!\ --> apparently not necessary finally, according to Liu)
+        # sample_pos = personOfInterestLocation + noise.reshape(1, 2)
         #                      8 x 2             (2,)
         sample_pos = personOfInterestLocation + noise_pos
 
@@ -347,13 +337,26 @@ class SocialNCE():
             # traj_primary = gt_future[batch_split[i]]
             traj_neighbour = gt_future[batch_split[i] + 1:batch_split[i + 1]]  # (number of neigbours x coordinates) --> for instance: 3 x 2
 
-            noise_neg = np.random.multivariate_normal([0, 0], np.array([[c_e, 0], [0, c_e]]), (traj_neighbour.shape[0], self.agent_zone.shape[0])) # (2,)
+            noise_neg = np.random.multivariate_normal([0, 0], np.array([[c_e**2, 0], [0, c_e**2]]), (traj_neighbour.shape[0], self.agent_zone.shape[0])) # (2,)
             # negSampleNonSqueezed: (number of neighbours x directions x coordinates) --> for instance: 3 x 9 x 2
             #                            3 x 1 x 2                     1 x 9 x 2                (2,)
             negSampleNonSqueezed = traj_neighbour[:, None, :] + self.agent_zone[None, :, :] + noise_neg
 
             # negSampleSqueezed: (number of neighbours * directions x coordinates) --> for instance: 27 x 2
             negSampleSqueezed = negSampleNonSqueezed.reshape((-1, negSampleNonSqueezed.shape[2]))
+
+
+            #getting rid of too close
+            dist = np.linalg.norm(negSampleSqueezed - personOfInterestLocation[i, :].reshape(-1, 2))
+            log_array = np.less_equal(dist, self.min_seperation)
+            negSampleSqueezed[log_array] = np.nan
+
+            # #getting rid of too far
+            # dist = np.linalg.norm(negSampleSqueezed - personOfInterestLocation[i, :].reshape(-1, 2))
+            # log_array = np.greater_equal(dist, self.min_seperation)
+            # negSampleSqueezed[log_array] = np.nan
+
+
 
             # Filling only the first part in the second dimension of sample_neg (leaving the rest as NaN values)
             sample_neg[i, 0:negSampleSqueezed.shape[0], :] = negSampleSqueezed
@@ -363,8 +366,11 @@ class SocialNCE():
         # sample_neg = gt_future[:,:,None,:] + self.agent_zone[None, None, :, :] + np.random.multivariate_normal([0,0], np.array([[c_e, 0], [0, c_e]]))
 
         # -----------------------------------------------------
-        #       Remove negatives that are too hard (optional)
+        #       Remove negatives that are too close to person of interrest
         # -----------------------------------------------------
+
+
+
 
         # -----------------------------------------------------
         #       Remove negatives that are too easy (optional)
