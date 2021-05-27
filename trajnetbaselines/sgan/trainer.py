@@ -436,7 +436,7 @@ class Trainer(object):
         
         '''
         nDirection = self.agent_zone.shape[0]
-        nMaxNeighbour = 80  # TODO re-tune
+        nMaxNeighbour = 1300  # TODO re-tune
 
         # sample_neg: (#persons of interest, #neigboor for this person of interest * #directions, #coordinates)
         # --> for instance: 8 x 12*9 x 2 = 8 x 108 x 2
