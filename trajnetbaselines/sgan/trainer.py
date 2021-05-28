@@ -436,7 +436,7 @@ class Trainer(object):
         
         '''
         nDirection = self.agent_zone.shape[0]
-        nMaxNeighbour = 1300  # TODO re-tune
+        nMaxNeighbour = 80  # TODO re-tune
 
         # sample_neg: (#persons of interest, #neigboor for this person of interest * #directions, #coordinates)
         # --> for instance: 8 x 12*9 x 2 = 8 x 108 x 2
@@ -457,7 +457,8 @@ class Trainer(object):
 
 
             #getting rid of too close
-            dist = np.linalg.norm(negSampleSqueezed - personOfInterestLocation[i, :].reshape(-1, 2))
+            vectForDist= negSampleSqueezed - personOfInterestLocation[i, :].reshape(-1, 2)
+            dist = np.sqrt( vectForDist[:, 0]**2 + vectForDist[:, 1]**2    )
             log_array = np.less_equal(dist, self.min_seperation)
             negSampleSqueezed[log_array] = np.nan
 
