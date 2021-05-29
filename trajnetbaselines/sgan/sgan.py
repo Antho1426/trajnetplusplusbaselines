@@ -659,7 +659,8 @@ class SGANPredictor(object):
 
             multimodal_outputs = {}
             ## model.k outputs
-            _, output_scenes_list, _, _ = self.model(xy[:obs_length], scene_goal, batch_split, n_predict=n_predict)
+                                        #antho and max added this last argument
+            _, output_scenes_list, _, _, _ = self.model(xy[:obs_length], scene_goal, batch_split, n_predict=n_predict)
             for num_p, _ in enumerate(output_scenes_list):
                 output_scenes = output_scenes_list[num_p]
                 output_scenes = output_scenes.numpy()
