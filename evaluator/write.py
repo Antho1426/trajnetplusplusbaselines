@@ -136,9 +136,11 @@ def main(args=None):
             scenes = tqdm(scenes)
             with open(args.path + '{}/{}'.format(model_name, name), "a") as myfile:
                 ## Get all predictions in parallel. Faster!
+                print("before the parelel stuff")
+
                 pred_list = Parallel(n_jobs=12)(delayed(process_scene)(predictor, model_name, paths, scene_goal, args)
                                                 for (_, _, paths), scene_goal in zip(scenes, scene_goals))
-
+                print("after the parelel stuff")
                 ## Write All Predictions
                 for (predictions, (_, scene_id, paths)) in zip(pred_list, scenes):
                     ## Extract 1) first_frame, 2) frame_diff 3) ped_ids for writing predictions
