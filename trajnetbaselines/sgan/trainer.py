@@ -360,14 +360,15 @@ class Trainer(object):
         """
 
         observed = batch_scene[self.start_length:self.obs_length]
-        prediction_truth = batch_scene[self.obs_length:].clone()  ## CLONE
+        #prediction_truth = batch_scene[self.obs_length:].clone() # CLONE
         targets = batch_scene[self.obs_length:self.seq_length] - batch_scene[self.obs_length-1:self.seq_length-1]
         
         with torch.no_grad():
-            rel_output_list, _, _, _ = self.model(observed, batch_scene_goal, batch_split,
+            # "batch_feat" added as an additional returned argument by Antho
+            rel_output_list, _, _, _, batch_feat = self.model(observed, batch_scene_goal, batch_split,
                                                   n_predict=self.pred_length, pred_length=self.pred_length)
 
-            ## top-k loss
+            # top-k loss
             loss = self.variety_loss(rel_output_list, targets, batch_split)
 
         return 0.0, loss.item()
@@ -375,14 +376,15 @@ class Trainer(object):
 
 
     def _sampling_spatial(self, batch_scene, batch_split):
-        self.noise_local = 0.05  # TODO maybe 0.1    0.025
-        self.min_seperation = 0.45  # #TODO increase this ? (uncomfortable zone is up to 20[cm])
-        self.max_seperation = 5  # #TODO increase this ? (uncomfortable zone is up to 20[cm])
+        self.noise_local = 0.05  # TODO maybe 0.1 or 0.025
+        self.min_seperation = 0.45  # TODO increase this ? (uncomfortable zone is up to 45[cm])
+        self.max_seperation = 5  # TODO increase this ? (anyway not used for the moment)
         self.agent_zone = self.min_seperation * torch.tensor(
             [[1.0, 0.0], [-1.0, 0.0], [0.0, 1.0], [0.0, -1.0], [0.707, 0.707],
              [0.707, -0.707], [-0.707, 0.707], [-0.707, -0.707], [0.0, 0.0]])
 
-        # "_" indicates that this is a private function that we can only access from the class
+        # The prefix "_" indicates that this is a private function that we can only
+        # access from the class
         # batch_split : 9 (ID of the persons we want to select (except the last element which marks the end of the batch))
         # batch_scene : (time x persons x coordinates) --> for instance: 21 x 39 x 2
 
@@ -443,7 +445,7 @@ class Trainer(object):
         
         '''
         nDirection = self.agent_zone.shape[0]
-        nMaxNeighbour = 80  # TODO re-tune
+        nMaxNeighbour = 80 # TODO re-tune
 
         # sample_neg: (#persons of interest, #neigboor for this person of interest * #directions, #coordinates)
         # --> for instance: 8 x 12*9 x 2 = 8 x 108 x 2
@@ -463,18 +465,16 @@ class Trainer(object):
             negSampleSqueezed = negSampleNonSqueezed.reshape((-1, negSampleNonSqueezed.shape[2]))
 
 
-            #getting rid of too close
-            vectForDist= negSampleSqueezed - personOfInterestLocation[i, :].reshape(-1, 2)
-            dist = np.sqrt( vectForDist[:, 0]**2 + vectForDist[:, 1]**2    )
+            # Getting rid of too close negative samples
+            vectForDist = negSampleSqueezed - personOfInterestLocation[i, :].reshape(-1, 2)
+            dist = np.sqrt(vectForDist[:, 0]**2 + vectForDist[:, 1]**2)
             log_array = np.less_equal(dist, self.min_seperation)
             negSampleSqueezed[log_array] = np.nan
 
-            # #getting rid of too far
+            # Getting rid of too far away negative samples
             # dist = np.linalg.norm(negSampleSqueezed - personOfInterestLocation[i, :].reshape(-1, 2))
             # log_array = np.greater_equal(dist, self.min_seperation)
             # negSampleSqueezed[log_array] = np.nan
-
-
 
             # Filling only the first part in the second dimension of sample_neg (leaving the rest as NaN values)
             sample_neg[i, 0:negSampleSqueezed.shape[0], :] = negSampleSqueezed
@@ -522,13 +522,6 @@ class Trainer(object):
         if visualize:
             print("VISUALIZING")
 
-
-
-
-            with open('outputs_saved.pkl', 'rb') as f:
-                outputs_saved = pickle.load(f)
-
-            for i in range(batch_split.shape[0] - 1):  # for each scene
 
                 import matplotlib
                 matplotlib.use('Agg')
@@ -592,8 +585,7 @@ class Trainer(object):
         mask_normal_space = torch.isnan(sample_neg)
         sample_neg[torch.isnan(sample_neg)] = 0
         # key_neg : 8x108x8
-        emb_pos = self.encoder_sample(
-            sample_pos)  # TODO cast to pytorch first #todo: maybe implemented a validity mask
+        emb_pos = self.encoder_sample(sample_pos) # TODO cast to pytorch first
         emb_neg = self.encoder_sample(sample_neg)
         key_pos = nn.functional.normalize(emb_pos, dim=-1)
         key_neg = nn.functional.normalize(emb_neg, dim=-1)
@@ -660,7 +652,7 @@ class Trainer(object):
 
         else:
             ## top-k loss
-            loss = self.variety_loss(rel_output_list, targets, batch_split) ##TODO delete line after, and add a constartive step here
+            loss = self.variety_loss(rel_output_list, targets, batch_split) # TODO delete line after, and add a constartive step here
             global contrast_weight
             if contrast_weight > 0:
                 lossContrast = self.contrastive_loss(rel_output_list, targets, batch_split, batch_scene, batch_feat)
@@ -704,7 +696,9 @@ class Trainer(object):
         loss = torch.min(loss, dim=0)[0]
         loss = torch.sum(loss)
         return loss
+
 contrast_weight = 0
+
 def main(epochs=25):
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', default=epochs, type=int,

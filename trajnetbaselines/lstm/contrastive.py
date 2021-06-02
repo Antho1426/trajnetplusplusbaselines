@@ -29,8 +29,8 @@ class SocialNCE():
 
         # sampling param
         self.noise_local = 0.05  # TODO maybe 0.1    0.025
-        self.min_seperation = 0.2  # #TODO increase this ? (uncomfortable zone is up to 20[cm])
-        self.max_seperation = 5  # #TODO increase this ? (uncomfortable zone is up to 20[cm])
+        self.min_seperation = 0.2  # TODO increase this ? (uncomfortable zone is up to 20[cm])
+        self.max_seperation = 5  # TODO increase this ? (anyway not used for the moment)
         self.agent_zone = self.min_seperation * torch.tensor(
             [[1.0, 0.0], [-1.0, 0.0], [0.0, 1.0], [0.0, -1.0], [0.707, 0.707],
              [0.707, -0.707], [-0.707, 0.707], [-0.707, -0.707], [0.0, 0.0]])
@@ -85,7 +85,7 @@ class SocialNCE():
         # visualisation
         visualize = 1
         if visualize:
-            for i in range(batch_split.shape[0] - 1):  # for each scene
+            for i in range(batch_split.shape[0] - 1): # for each scene
 
                 import matplotlib
                 matplotlib.use('Agg')
@@ -128,8 +128,8 @@ class SocialNCE():
         # -----------------------------------------------------
         # 12x40x8                             12x40x128
         interestsID = batch_split[0:-1]
-        emb_obsv = self.head_projection(batch_feat[self.obs_length, interestsID, :])  # TODO should not the whole batch
-        query = nn.functional.normalize(emb_obsv, dim=-1)  # TODO might not be dim 1
+        emb_obsv = self.head_projection(batch_feat[self.obs_length, interestsID, :]) # TODO should not the whole batch
+        query = nn.functional.normalize(emb_obsv, dim=-1) # TODO might not be dim 1
 
         # Embedding is not necessarily a dimension reduction process! Here we
         # want to find a way to compute the similarity btw. the motion features
@@ -138,8 +138,7 @@ class SocialNCE():
         mask_normal_space = torch.isnan(sample_neg)
         sample_neg[torch.isnan(sample_neg)] = 0
         # key_neg : 8x108x8
-        emb_pos = self.encoder_sample(
-            sample_pos)  # TODO cast to pytorch first #todo: maybe implemented a validity mask
+        emb_pos = self.encoder_sample(sample_pos) # TODO cast to pytorch first #todo: maybe implemented a validity mask
         emb_neg = self.encoder_sample(sample_neg)
         key_pos = nn.functional.normalize(emb_pos, dim=-1)
         key_neg = nn.functional.normalize(emb_neg, dim=-1)
@@ -157,7 +156,7 @@ class SocialNCE():
                                            mask_normal_space[:, :, 1])
         sim_neg[mask_new_space] = -10
 
-        logits = torch.cat([sim_pos, sim_neg], dim=-1) / self.temperature  # Warning! Pos and neg samples are concatenated!
+        logits = torch.cat([sim_pos, sim_neg], dim=-1) / self.temperature # Warning! Pos and neg samples are concatenated!
 
         # -----------------------------------------------------
         #                       NCE Loss
@@ -208,7 +207,7 @@ class SocialNCE():
                                            mask_normal_space[:, :, 1])
         sim_neg[mask_new_space] = -10
 
-        logits = torch.cat([sim_pos, sim_neg], dim=-1) / self.temperature  # Warning! Pos and neg samples are concatenated!
+        logits = torch.cat([sim_pos, sim_neg], dim=-1) / self.temperature # Warning! Pos and neg samples are concatenated!
 
         # -----------------------------------------------------
         #                       NCE Loss
@@ -226,7 +225,7 @@ class SocialNCE():
         #positive sample
         c_e = self.noise_local
         # Retrieving the location of the pedestrians of interest only
-        personOfInterestLocation = gt_future[:, batch_split[0:-1], :]  # (persons of interest x coordinates) --> for instance: 8 x 2
+        personOfInterestLocation = gt_future[:, batch_split[0:-1], :] # (persons of interest x coordinates) --> for instance: 8 x 2
         noise_pos = np.random.multivariate_normal([0, 0], np.array([[c_e, 0], [0, c_e]]), (self.pred_length, 8))  # (2,)
         #                      8 x 2                   1 x 2
         # sample_pos = personOfInterestLocation + noise.reshape(1, 2)
@@ -241,8 +240,7 @@ class SocialNCE():
 
         # sample_neg: (#persons of interest, #neigboor for this person of interest * #directions, #coordinates)
         # --> for instance: 8 x 12*9 x 2 = 8 x 108 x 2
-        sample_neg = np.empty(
-            (self.pred_length, batch_split.shape[0] - 1, nDirection * nMaxNeighbour, 2))
+        sample_neg = np.empty((self.pred_length, batch_split.shape[0] - 1, nDirection * nMaxNeighbour, 2))
         sample_neg[:] = np.NaN  # populating sample_neg with NaN values
         for i in range(batch_split.shape[0] - 1):
 
@@ -302,7 +300,7 @@ class SocialNCE():
         #                      8 x 2             (2,)
         sample_pos = personOfInterestLocation + noise_pos
 
-              # Retrieving the location of all pedestrians
+        # Retrieving the location of all pedestrians
         # sample_pos = gt_future[:, :, :] + np.random.multivariate_normal([0,0], np.array([[c_e, 0], [0, c_e]]))
 
         # -----------------------------------------------------
@@ -326,7 +324,7 @@ class SocialNCE():
         
         '''
         nDirection = self.agent_zone.shape[0]
-        nMaxNeighbour = 80  # TODO re-tune
+        nMaxNeighbour = 80 # TODO re-tune
 
         # sample_neg: (#persons of interest, #neigboor for this person of interest * #directions, #coordinates)
         # --> for instance: 8 x 12*9 x 2 = 8 x 108 x 2
@@ -346,12 +344,12 @@ class SocialNCE():
             negSampleSqueezed = negSampleNonSqueezed.reshape((-1, negSampleNonSqueezed.shape[2]))
 
 
-            #getting rid of too close
+            # Getting rid of too close negative samples
             dist = np.linalg.norm(negSampleSqueezed - personOfInterestLocation[i, :].reshape(-1, 2))
             log_array = np.less_equal(dist, self.min_seperation)
             negSampleSqueezed[log_array] = np.nan
 
-            # #getting rid of too far
+            # Getting rid of too far away negative samples
             # dist = np.linalg.norm(negSampleSqueezed - personOfInterestLocation[i, :].reshape(-1, 2))
             # log_array = np.greater_equal(dist, self.min_seperation)
             # negSampleSqueezed[log_array] = np.nan
