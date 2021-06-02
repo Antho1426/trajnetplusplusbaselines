@@ -31,7 +31,7 @@ from ..lstm.data_load_utils import prepare_data
 from torch import nn as nn
 
 
-
+#
 class ProjHead(nn.Module):
     """
         Nonlinear projection head that maps the extracted motion features to the embedding space
@@ -521,7 +521,10 @@ class Trainer(object):
 
         if visualize:
             print("VISUALIZING")
+            with open('outputs_saved.pkl', 'rb') as f:
+                outputs_saved = pickle.load(f)
 
+            for i in range(batch_split.shape[0] - 1):  # for each scene
 
                 import matplotlib
                 matplotlib.use('Agg')
