@@ -255,18 +255,16 @@ The figure above shows trajectory predictions in a scene for our best model (SGA
 To summarize this results part, we first used the VAE and SGAN models off the shelf and then implemented our own solution combining SGAN without discriminator and with the contrastive learning introduced in milestone 2. In our approach we have decided to consider predictions with 3 modes, which tends to be a good trade-off between computational cost and taking the advantage of multimodal scenarios. In comparison with the D-LSTM model implementing contrastive learning from milestone 2, SGAN models clearly tend to increase the COL-I and reduce the FDE. To tackle this problem we used contrastive learning, since it was shown in [*Social NCE: Contrastive Learning of Socially-aware Motion Representations*](https://arxiv.org/pdf/2012.11717.pdf) that it helps to provide better results in terms of collision rate without significantly worsening the FDE. Combining both techniques allowed us to stabilize both metrics, ultimately providing one of the highest scores in AICrowd competition.
 
 
-
 <a name="mi_3_3"></a>
 ### 3) Conclusion
 
-The field of autonomous vehicles encompasses various pillars among which “perceiving”, “predicting” and “planning”. Most research has so far focused on “perceiving”. In fact, the "predicting" part (i.e. forecasting) is just as important and crucial for the next step which consists in planning a trajectory. In this project, we have discovered and implemented various methods to tackle the challenges related to pedestrian trajectory forecasting. Those challenges are following:
+The field of autonomous vehicles encompasses various pillars among which “perceiving”, “predicting” and “planning”. Most research has so far focused on “perceiving”. In fact, the “predicting” part (i.e. forecasting) is just as important and crucial for the next step which consists in planning a trajectory. In this project, we have discovered and implemented various methods to tackle the challenges related to pedestrian trajectory forecasting. Those challenges are following:
 
 - Sequence Modelling: Effectively encoding the past trajectories to predict the future trajectories.
 - Presence of Social Interactions: The future trajectory of a pedestrian is also affected by motion of surrounding pedestrians.
 - Multimodality: Given the past history, multiple futures are plausible.
 
-Thanks to the provided TrajNet++ framework, we began this journey with a simple Vanilla model and ended up with an advanced Social GAN without discriminator able to output multimodal futures and whose loss combines advantages from variety loss and NCE loss. Combined with a multimodal baseline such as Social GAN, the contrastive learning method promotes the social awareness of neural motion models for various possible futures. We hope that the idea of putting these two techniques together can contribute in some way to the development of socially-aware AI.
-
+Thanks to the provided TrajNet++ framework, we began this journey with a simple Vanilla model and ended up with an advanced Social GAN without discriminator able to output multimodal futures and whose loss combines advantages from variety loss and NCE loss. We observed that, combined with a multimodal baseline such as Social GAN, the contrastive learning method is able to promote the social awareness of neural motion models for various possible futures. We hope that the idea of putting these two techniques together can contribute in some way to the development of socially-aware AI.
 
 
 
