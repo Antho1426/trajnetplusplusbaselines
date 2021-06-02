@@ -275,6 +275,7 @@ class Trainer(object):
         # ------------- Social NCE ----------------
         if self.contrast_weight > 0:
             if self.contrast_sampling == 'single':
+                # "spatial" generates negative and positive samples ONLY for the first timestamp
                 loss_contrastive = self.contrastive.spatial(batch_scene, batch_split, batch_feat)
                 # batch_scene: contains the trajectory of all the pedestrians in the scene
                 #   batch_scene.dtype: torch.float32
@@ -284,11 +285,12 @@ class Trainer(object):
                 #   batch_split: torch.int64
                 #   batch_scene.size(): torch.Size([9])
                 #
-                # batch_feat: the feature we are trying to target (i.e. compressed representation of the ground truth, i.e. our "labels")
+                # batch_feat: encoded (compressed) representation of the observed trajectories (created by the "interaction and sequence encoder")
                 #   batch_feat.dtype: torch.float32
                 #   batch_feat.size(): torch.Size([12, 40, 128])
                 #
             elif self.contrast_sampling == 'multi':
+                # "event" generates negative and positive samples for a specific horizon of timestamps (i.e. more than one timestamps in the future)
                 loss_contrastive = self.contrastive.event(batch_scene, batch_split, batch_feat)
             else:
                 raise NotImplementedError

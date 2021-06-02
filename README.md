@@ -41,6 +41,12 @@ TrajNet++ is a large scale interaction-centric trajectory forecasting benchmark 
  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.4 [ Results ](#mi_2_res)
  
  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.5 [ Observations ](#mi_2_obs)
+
+3. [ Multimodal Prediction & TrajNet++ Challenge ](#mi_3)
+
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.1 [ Visualizations ](#mi_3_vis) 
+ 
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.2 [ Qualitative evaluation ](#mi_1_qual_eval)
   
 
 <a name="mi_1"></a>
@@ -180,3 +186,6 @@ From the results we obtain, we can see that in comparison to our best submission
 Concerning the FDE (Final Displacement Error), even if this metric didn't decrease that much in comparison with milestone 1 (our lowest FDE was obtained with submission 9), we can conclude that this new NCE loss remains all the same competitive in the FDE by not impacting it too much.
 
 To sum up, the overall best performing model we trained (i.e. the one embedding jointly the lowest FDE and COL-I) is the one of submission 11. As said previously, the learning rate must be chosen wisely to allow the model to learn effectively. In our case, we have chosen to keep its default value (1e-3). In the first submissions we made, we started with a model that we had not submitted for milestone 1, but that we had trained to 30 epochs. Later, for fairer comparisons, we chose rather to fine-tune the best model we had submitted to AICrowd (i.e. the one from submission 2 of milestone 1 trained to 25 epochs) even though it has been trained on 5 less epochs. We also observed that there doesn't seem to be much improvement between 10 and 15 additional epochs. Indeed, the learning curve should apparently gently tend towards a zero slope from 10 additional epochs. Finally, the contrastive weight (introduced in milestone 2) was the new critical hyperparameter we had to tune. From our tests, we deduce that an optimal value for this parameter is situated between 0.5 and 3 in order to influence the global loss in a reasonable way and to reduce the COL-I metric.
+
+
+## ᐅ Multimodal Prediction & TrajNet++ Challenge

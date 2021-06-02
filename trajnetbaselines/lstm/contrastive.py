@@ -49,9 +49,6 @@ class SocialNCE():
                 loss: social nce loss
         """
 
-        if torch.any(torch.isnan(batch_feat)):
-            print("WAAAAARNING ! there is NaN in the batch_feat!")
-
         # -----------------------------------------------------
         #               Visualize Trajectories 
         #       (Use this block to visualize the raw data)
@@ -82,10 +79,13 @@ class SocialNCE():
 
         (sample_pos, sample_neg) = self._sampling_spatial(batch_scene, batch_split)
 
-        # visualisation
-        visualize = 1
+        # Scenes visualisation
+        # Displaying the position of the primary pedestrian, the neighbours,
+        # the positive sample and the negative samples
+        visualize = 0
         if visualize:
-            for i in range(batch_split.shape[0] - 1): # for each scene
+
+            for i in range(batch_split.shape[0] - 1): # looping over the scenes
 
                 import matplotlib
                 matplotlib.use('Agg')
@@ -95,20 +95,21 @@ class SocialNCE():
                 fig.set_size_inches(16, 9)
                 ax = fig.add_subplot(1, 1, 1)
 
-
+                # Person of interest true position
                 ax.scatter(batch_scene[self.obs_length, batch_split[i], 0],
                            batch_scene[self.obs_length, batch_split[i], 1],
                            label="person of interest true pos")
+
                 # Positive sample
                 ax.scatter(sample_pos[i, 0], sample_pos[i, 1],
                            label="positive sample")
 
-                # Displaying the position of the neighbours
-                # True position
+                # Neighbours true position
                 ax.scatter(batch_scene[self.obs_length, batch_split[i] + 1:batch_split[i + 1], 0].view(-1),
                            batch_scene[self.obs_length, batch_split[i] + 1:batch_split[i + 1], 1].view(-1),
                            label="neighbours true pos")
-                # Negative sample
+
+                # Negative samples
                 ax.scatter(sample_neg[i, :, 0].view(-1),
                            sample_neg[i, :, 1].view(-1),
                            label="negative sample")
@@ -122,49 +123,72 @@ class SocialNCE():
                 plt.savefig(fname, bbox_inches='tight', pad_inches=0)
                 plt.close(fig)
                 print(f'displayed samples {i}')
+
+            # Unavoidable breakpoint
             5/0
+
         # -----------------------------------------------------
         #              Lower-dimensional Embedding
         # -----------------------------------------------------
-        # 12x40x8                             12x40x128
+        # 8
         interestsID = batch_split[0:-1]
-        emb_obsv = self.head_projection(batch_feat[self.obs_length, interestsID, :]) # TODO should not the whole batch
-        query = nn.functional.normalize(emb_obsv, dim=-1) # TODO might not be dim 1
+        # 8 x 8
+        emb_obsv = self.head_projection(batch_feat[self.obs_length, interestsID, :]) # passing the social representation (of the observed trajectories) into the "projection head" to get an embedded observation
+        # 8 x 8
+        query = nn.functional.normalize(emb_obsv, dim=-1) # normalizing the embedded observation to get the query
 
         # Embedding is not necessarily a dimension reduction process! Here we
         # want to find a way to compute the similarity btw. the motion features
-        # (for this we have to increase the number of features!)
-        # sample_neg: 8x108x2
+        # (for this we have to increase the number of features (so that's not
+        # dimension reduction here)!)
+        #                          sample_neg: 8 x 108 x 2
         mask_normal_space = torch.isnan(sample_neg)
+        # Replacing the NaN values in "sample_neg" by "0" to avoid having NaN values in the "sample encoder"
         sample_neg[torch.isnan(sample_neg)] = 0
-        # key_neg : 8x108x8
-        emb_pos = self.encoder_sample(sample_pos) # TODO cast to pytorch first #todo: maybe implemented a validity mask
-        emb_neg = self.encoder_sample(sample_neg)
-        key_pos = nn.functional.normalize(emb_pos, dim=-1)
-        key_neg = nn.functional.normalize(emb_neg, dim=-1)
+
+        # emb_pos: 8 x 8                sample_pos: 8 x 2
+        emb_pos = self.encoder_sample(sample_pos) # passing the positive samples into the "sample encoder" to get an embedding of the positive samples
+        # 8 x 8
+        key_pos = nn.functional.normalize(emb_pos, dim=-1) # normalizing the embedded positive samples to get the "positive key"
+
+        # 8 x 108 x 8
+        emb_neg = self.encoder_sample(sample_neg) # passing the negative samples into the "sample encoder" to get an embedding of the negative samples
+        # 8 x 108 x 8
+        key_neg = nn.functional.normalize(emb_neg, dim=-1) # normalizing the embedded negative samples to get the "negative key"
 
         # -----------------------------------------------------
         #                   Compute Similarity 
         # -----------------------------------------------------
-        # similarity
-        # 12x40x8   12x8x1x8
-        sim_pos = (query[:, None, :] * key_pos[:, None, :]).sum(dim=-1)
-        sim_neg = (query[:, None, :] * key_neg).sum(dim=-1)
+        # Computing the similarity is equivalent to compute the dot product between two tensors
+        # In the paper, they use the cosine similarity (which is the same similarity we used
+        # except the fact that it is additionally normalized)
 
-        # 8x108
+        # sim_pos: 8 x 1   query: 8 x 8      key_pos: 8 x 8
+        sim_pos = (query[:, None, :] * key_pos[:, None, :]).sum(dim=-1) # computing the similarity between the query and the positive key
+        # sim_neg: 8 x 108   query: 8 x 8      key_neg: 8 x 108 x 8
+        sim_neg = (query[:, None, :] * key_neg).sum(dim=-1) # computing the similarity between the query and the negative key
+
+        # mask_new_space: 8 x 108          mask_normal_space: 8 x 108 x 2
         mask_new_space = torch.logical_and(mask_normal_space[:, :, 0],
                                            mask_normal_space[:, :, 1])
-        sim_neg[mask_new_space] = -10
 
-        logits = torch.cat([sim_pos, sim_neg], dim=-1) / self.temperature # Warning! Pos and neg samples are concatenated!
+        # 8 x 108
+        sim_neg[mask_new_space] = -10 # setting the previously NaN values of the "negative samples" to "-10" to make sure those will have a very little influence on the logits used to compute the loss
+
+        logits = torch.cat([sim_pos, sim_neg], dim=-1) / self.temperature # concatenating positive and negative samples
+        # (As in the paper, we divide here the similarity between the query and the key by the temperature;
+        # temperature scaling can affect the feature vectors by increasing the similarity (in case temperature < 1);
+        # we used the default value of temperature of 0.07)
 
         # -----------------------------------------------------
         #                       NCE Loss
         # -----------------------------------------------------
+        # labels: 8 (= number of primary pedestrians)
         labels = torch.zeros(logits.size(0), dtype=torch.long)
-        loss = self.criterion(logits, labels)
+        loss = self.criterion(logits, labels) # computing the "CrossEntropyLoss" loss with a labels being a tensor of zero values is a hack to implement the loss used in the paper (equation 1, p.3)
         #print(f"the contrast loss is {loss}")
         return loss
+
 
     def event(self, batch_scene, batch_split, batch_feat):
         """
@@ -236,7 +260,7 @@ class SocialNCE():
 
         #_______negative sample____________
         nDirection = self.agent_zone.shape[0]
-        nMaxNeighbour = 50
+        nMaxNeighbour = 80
 
         # sample_neg: (#persons of interest, #neigboor for this person of interest * #directions, #coordinates)
         # --> for instance: 8 x 12*9 x 2 = 8 x 108 x 2
@@ -309,28 +333,13 @@ class SocialNCE():
         # cf. fig 4b and eq. 6 in paper "Social NCE: Contrastive Learning of
         # Socially-aware Motion Representations" (https://arxiv.org/abs/2012.11717):
 
-        '''
-        # negative sample for neighboor only
-        personInterest = batch_split[0:-1]
-        neighboors = np.ones(gt_future.shape[1])
-        neighboors[personInterest]=0
-        neighboorsID = np.argwhere(neighboors==1)
-        sceneNeighboors= gt_future[:, neighboorsID, :]
-
-        #12 x 30 x 9 x 2
-                    time x primary x allsample x coord
-        # should be 12 x 10 x 32 x2
-        sample_neg = sceneNeighboors + self.agent_zone[None, None, :, :] + np.random.multivariate_normal([0,0], np.array([[c_e, 0], [0, c_e]]))
-        
-        '''
         nDirection = self.agent_zone.shape[0]
-        nMaxNeighbour = 80 # TODO re-tune
+        nMaxNeighbour = 80 # with 50 it was not enough and had to increase it
 
         # sample_neg: (#persons of interest, #neigboor for this person of interest * #directions, #coordinates)
         # --> for instance: 8 x 12*9 x 2 = 8 x 108 x 2
-        sample_neg = np.empty(
-            (batch_split.shape[0] - 1, nDirection * nMaxNeighbour, 2))
-        sample_neg[:] = np.NaN  # populating sample_neg with NaN values
+        sample_neg = np.empty((batch_split.shape[0] - 1, nDirection * nMaxNeighbour, 2))
+        sample_neg[:] = np.NaN  # populating the whole sample_neg with NaN values everywhere
         for i in range(batch_split.shape[0] - 1):
             # traj_primary = gt_future[batch_split[i]]
             traj_neighbour = gt_future[batch_split[i] + 1:batch_split[i + 1]]  # (number of neigbours x coordinates) --> for instance: 3 x 2
@@ -343,36 +352,22 @@ class SocialNCE():
             # negSampleSqueezed: (number of neighbours * directions x coordinates) --> for instance: 27 x 2
             negSampleSqueezed = negSampleNonSqueezed.reshape((-1, negSampleNonSqueezed.shape[2]))
 
+            # -----------------------------------------------------
+            #       Remove negatives that are too close to person of interrest
+            # -----------------------------------------------------
 
-            # Getting rid of too close negative samples
+            # Getting rid of too close negative samples to the primary pedestrian
+            # (Those negative samples would be too close by default --> no need to analyze the output)
             dist = np.linalg.norm(negSampleSqueezed - personOfInterestLocation[i, :].reshape(-1, 2))
             log_array = np.less_equal(dist, self.min_seperation)
             negSampleSqueezed[log_array] = np.nan
 
-            # Getting rid of too far away negative samples
-            # dist = np.linalg.norm(negSampleSqueezed - personOfInterestLocation[i, :].reshape(-1, 2))
-            # log_array = np.greater_equal(dist, self.min_seperation)
-            # negSampleSqueezed[log_array] = np.nan
-
-
-
             # Filling only the first part in the second dimension of sample_neg (leaving the rest as NaN values)
             sample_neg[i, 0:negSampleSqueezed.shape[0], :] = negSampleSqueezed
 
-        # negative sample for everyone
-        # the position          # the direction to look around     #some noise
-        # sample_neg = gt_future[:,:,None,:] + self.agent_zone[None, None, :, :] + np.random.multivariate_normal([0,0], np.array([[c_e, 0], [0, c_e]]))
-
-        # -----------------------------------------------------
-        #       Remove negatives that are too close to person of interrest
-        # -----------------------------------------------------
-
-
-
-
-        # -----------------------------------------------------
-        #       Remove negatives that are too easy (optional)
-        # -----------------------------------------------------
+            # -----------------------------------------------------
+            #       Remove negatives that are too easy (optional)
+            # -----------------------------------------------------
 
         sample_pos = sample_pos.float()
         sample_neg = torch.tensor(sample_neg).float()

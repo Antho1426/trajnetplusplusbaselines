@@ -325,8 +325,8 @@ class Trainer(object):
 
         loss, lossContrast = self.loss_criterion(rel_output_list, targets, batch_split, scores_fake, scores_real, step_type, batch_scene, batch_feat)
 
-
         5/0
+
         if step_type == 'g':
             self.g_optimizer.zero_grad()
             loss.backward()
@@ -430,20 +430,6 @@ class Trainer(object):
         # cf. fig 4b and eq. 6 in paper "Social NCE: Contrastive Learning of
         # Socially-aware Motion Representations" (https://arxiv.org/abs/2012.11717):
 
-        '''
-        # negative sample for neighboor only
-        personInterest = batch_split[0:-1]
-        neighboors = np.ones(gt_future.shape[1])
-        neighboors[personInterest]=0
-        neighboorsID = np.argwhere(neighboors==1)
-        sceneNeighboors= gt_future[:, neighboorsID, :]
-
-        #12 x 30 x 9 x 2
-                    time x primary x allsample x coord
-        # should be 12 x 10 x 32 x2
-        sample_neg = sceneNeighboors + self.agent_zone[None, None, :, :] + np.random.multivariate_normal([0,0], np.array([[c_e, 0], [0, c_e]]))
-        
-        '''
         nDirection = self.agent_zone.shape[0]
         nMaxNeighbour = 80 # TODO re-tune
 
@@ -502,12 +488,11 @@ class Trainer(object):
 
 
     def contrastive_loss(self, rel_output_list, targets, batch_split, batch_scene, batch_feat):
-        #print ("""CONSTRASTIVE LOSS ENABLED !!""")
 
         HIDDEN_DIM= 128
         CONTRAST_DIM = 8
-        head_projection = ProjHead(feat_dim=HIDDEN_DIM, hidden_dim=CONTRAST_DIM*4, head_dim=CONTRAST_DIM)
-        encoder_sample = SpatialEncoder(hidden_dim=CONTRAST_DIM, head_dim=CONTRAST_DIM)
+        head_projection = ProjHead(feat_dim=HIDDEN_DIM, hidden_dim=CONTRAST_DIM*4, head_dim=CONTRAST_DIM) # 2-layer MLP
+        encoder_sample = SpatialEncoder(hidden_dim=CONTRAST_DIM, head_dim=CONTRAST_DIM) # another 2-layer MLP
         self.head_projection = head_projection
         self.encoder_sample = encoder_sample
         self.temperature = 0.07
@@ -534,31 +519,54 @@ class Trainer(object):
                 fig.set_size_inches(16, 9)
                 ax = fig.add_subplot(1, 1, 1)
 
-
-                ax.scatter(batch_scene[self.obs_length, batch_split[i], 0],
-                           batch_scene[self.obs_length, batch_split[i], 1],
-                           label="person of interest true pos")
-                # Positive sample
-                ax.scatter(sample_pos[i, 0], sample_pos[i, 1],
-                           label="positive sample")
-
                 # Displaying the position of the neighbours
                 # True position
                 ax.scatter(batch_scene[self.obs_length, batch_split[i] + 1:batch_split[i + 1], 0].view(-1),
                            batch_scene[self.obs_length, batch_split[i] + 1:batch_split[i + 1], 1].view(-1),
-                           label="neighbours true pos")
+                           label="neighbours true pos", c='g')
 
                 # Negative sample
                 ax.scatter(sample_neg[i, :, 0].view(-1),
                            sample_neg[i, :, 1].view(-1),
-                           label="negative sample")
-                # Trajectory planned
-                #outputs_saved = outputs_saved.detach().numpy()
-                ax.scatter(outputs_saved[:, i, 0].detach(),
-                           outputs_saved[:, i, 1].detach(),
-                           label="trajectories")
+                           label="negative sample", c='r')
 
+                # Trajectory planned (primary pedestrian)
+                # Past trajectory
+                ax.plot(outputs_saved[:8, batch_split[i], 0].detach(),
+                           outputs_saved[:8, batch_split[i], 1].detach(), linestyle='-', marker='.',
+                           label="past traj. main", c='pink')
+                # Future trajectory
+                ax.plot(outputs_saved[7:, batch_split[i], 0].detach(),
+                        outputs_saved[7:, batch_split[i], 1].detach(), linestyle='-', marker='.',
+                        label="future traj. main", c='m')
 
+                # Trajectory planned (neighbours)
+                for ind, j in enumerate(range(batch_split[i]+1, batch_split[i+1])):
+
+                    if ind == 0:
+                        # Past trajectory
+                        ax.plot(outputs_saved[:8, j, 0].detach(),
+                                outputs_saved[:8, j, 1].detach(), linestyle='-', marker='.',
+                                label="past traj. neigh.", c='c')
+                        # Future trajectory
+                        ax.plot(outputs_saved[7:, j, 0].detach(),
+                                outputs_saved[7:, j, 1].detach(), linestyle='-', marker='.',
+                                label="future traj. neigh.", c='darkblue')
+                    else:
+                        # Past trajectory
+                        ax.plot(outputs_saved[:8, j, 0].detach(),
+                                outputs_saved[:8, j, 1].detach(), linestyle='-', marker='.', c='c')
+                        # Future trajectory
+                        ax.plot(outputs_saved[7:, j, 0].detach(),
+                                outputs_saved[7:, j, 1].detach(), linestyle='-', marker='.', c='darkblue')
+
+                # True position of primary pedestrian
+                ax.scatter(batch_scene[self.obs_length, batch_split[i], 0],
+                           batch_scene[self.obs_length, batch_split[i], 1],
+                           label="person of interest true pos", c='b', zorder=10)
+                # Positive sample
+                ax.scatter(sample_pos[i, 0], sample_pos[i, 1],
+                           label="positive sample", c='orange')
 
                 ax.legend()
                 ax.set_aspect('equal')
@@ -613,8 +621,6 @@ class Trainer(object):
         # -----------------------------------------------------
         labels = torch.zeros(logits.size(0), dtype=torch.long)
 
-
-
         loss = self.criterion_contrast(logits, labels)
         #print(f"the contrast loss is {loss}")
         return loss
@@ -650,15 +656,15 @@ class Trainer(object):
             The corresponding generator / discriminator loss
         """
         lossContrast = 0
-        if step_type == 'd':
+        if step_type == 'd': # in case we are using the discriminator
             loss = gan_d_loss(scores_real, scores_fake)
 
-        else:
+        else: # in case we are NOT using the discriminator
             ## top-k loss
             loss = self.variety_loss(rel_output_list, targets, batch_split) # TODO delete line after, and add a constartive step here
             global contrast_weight
             if contrast_weight > 0:
-                lossContrast = self.contrastive_loss(rel_output_list, targets, batch_split, batch_scene, batch_feat)
+                lossContrast = self.contrastive_loss(rel_output_list, targets, batch_split, batch_scene, batch_feat) # our contrastive learning loss
                 loss += contrast_weight * lossContrast
 
 
