@@ -192,26 +192,76 @@ To sum up, the overall best performing model we trained (i.e. the one embedding 
 <a name="mi_3"></a>
 ## ᐅ Multimodal Prediction & TrajNet++ Challenge
 
+In 3rd milestone, we trained the three off the shelf multimodal baselines of the TrajNet++ framework, i.e. Social GAN, variety loss (SGAN without the discriminator) and conditional variational autoencoder (VAE). We carefully took into account results obtained from milestone 2, especially the power of contrastive learning to obtain better scores. We have successfully incorporated new modifications in the existing trajectory forecasting models based on the knowledge learned in the course, including fine-tuning of the contrastive weight parameter. In the end, for the open-ended part, we decided to use SGAN without discriminator and Contrastive Learning to combine the multimodal power of GAN network with the collision rate reduction effect of NCE. With a minimal FDE, this combination of techniques allowed us to get a high position on AICrowd ranking. The figure below depicts the network architecture applied in the 3rd milestone:
+
+<img src="README_figures/milestone_3/architecture_diagram.png">
+
+
 <a name="mi_3_1"></a>
 ### 1) Implementation details
 
-
+The implementation of contrastive learning in the Social GAN multimodal baseline was highly similar to the one applied in LSTM. In fact, we basically replicated the function `contrastive_loss` used in milestone 2 to compute the contrastive loss with the LSTM-based network inside the function `loss_criterion` of `sgan/trainer.py`. Nearly all the parameters needed in this task were already prepared to compute the variety loss and we just had to find a way to retrieve the parameters `batch_scene` and `batch_feat`. `batch_scene` (i.e. the tensor containing the trajectories of all the pedestrians in the scene) is available in the `train_batch` function from which the `loss_criterion` function is called. Hence, we modified the signature of `loss_criterion` to integrate this new parameter. As for the other variable `batch_feat` (i.e. the tensor containing the encoded representation of the observed trajectories created by the interaction and sequence encoder), we had just to modify the `forward` method of the `SGAN` class in `sgan.py` such that it returns the `batch_feat` computed by the generator for the last predicted scene. Of course, we had to call the projection head and the spatial encoder at the top of the `contrastive_loss` (along with other parameters such as the `temperature` required for Contrastive Learning), but apart from that the content and the principle of positive and negative sampling used in this `contrastive_loss` function are exactly the same as the ones used in milestone 2.
 
 
 
 <a name="mi_3_2"></a>
 ### 2) Results
 
+**Tables**
+
+We trained Social GAN (with the interaction module of type `social`) and conditional variational autoencoder (VAE) (here with the type `directional`) during 15 epochs, both with a learning rate of 1e-3. Following table summarises the obtained FDE and COL-I as evaluated by AICrowd. 
+
+| Baseline   | FDE  | COL-I |
+|------------|------|-------|
+| Social GAN | 1.33 | 8.11  |
+| VAE        | 4.92 | 14.98 |
+
+The table below summarizes the results in terms of FDE and COL-I we obtained from AICrowd using our Social GAN without discriminator and contrastive learning for three different values of the `contrast_weight` parameter.
+
+| contrast_weight | FDE  | COL-I |
+|-----------------|------|-------|
+| 2               | 1.19 | 6.26  |
+| 1               | **1.17** | 7.22  |
+| 0.5             | 1.18 | 7.58  |
+
+As we can observe, SGAN generally provides better results than VAE which presents much higher FDE and COL-I scores. In addition to this, our method combining SGAN without the discriminator and contrastive learning (second table) tends to perform better than the standard SGAN being available in the TrajNet++ framework. Focusing now only on the second table, it can be seen that the model with `contrast_weight` of 2 presents the smallest COL-I with a value of 6.26. This value is much higher than what we obtained in milestone 2 where we bottomed out at a value of 5.25. Finally, the smallest FDE score we ever achieved with a value of **1.17** has been made possible with the model using the `contrast_weight` parameter of 1. Following figure
+
+<img src="README_figures/milestone_3/predictions/visualize.scene44977.png">
 
 
+
+ 
+**Visualizations**
+
+<img src="README_figures/milestone_3/learning_curves/SGAN-loss-history-different-contrastive-weights.png">
+
+The training curves above represent the loss history of our three SGAN models without discriminator and with contrastive learning. These three models have been trained each time on both real and synthetic data. For instance, “re_cw_0.5” corresponds for instance to the model trained on real data with a `contrast_weight` of 0.5. Semi-transparent surfaces show the boundaries of the min and max values of the different losses along the 15 epochs of training. It appears that this gap remains quite large throughout the training. The actual loss curves (colorful lines) are the mean of the losses across the different batches. As seen from the second table above, the best FDE has been obtained with a `contrast_weight` of 1 (orange curve for real_data and violet curve for synth_data).
+
+The reason why the model presenting the lowest FDE doesn’t correspond to the lowest loss curve is probably that the loss doesn’t describe the actual performance of the network. In fact, it is difficult to directly deduce only from the aspect of the loss the performance of the network on the various metrics. For instance, a model with a very low FDE and a high COL-I might present a loss curve with higher values than a model with conversely a higher FDE but a lower COL-I. Another intuition we have is that our model with a `contrast_weight` of 0.5 could overfit a bit. This would imply that the training curve appears more promising (i.e. lower in the graph) than the corresponding validation curve (which is here not available). Especially for the very bottom curve, we observe that at epoch 10, the loss drops a bit. This is due to the fact that the learning rate scheduler is program to reduce the learning rate each 10 epochs. This boosts the learning process and improves slightly the training performance.
+
+<img src="README_figures/milestone_3/predictions/sampling_scene_7.png">
+
+The figure above shows trajectory predictions in a scene for our best model (SGAN without discriminator implementing contrastive learning with a `contrast_weight` of 1). Considering the timestamps in the scene, we observe that our model indeed allowed us to avoid unwanted situations, e.g. collisions between the agents.
+
+**Results summary**
+
+To summarize this results part, we first used the VAE and SGAN models off the shelf and then implemented our own solution combining SGAN without discriminator and with contrastive learning, introduced in milestone 2. In our approach we have decided to consider predictions with 3 modes, which tends to be a good trade-off between computational cost and taking the advantage of multimodal scenarios. In comparison with the D-LSTM model implementing contrastive learning from milestone 2, SGAN models clearly tend to increase the COL-I and reduce the FDE. To tackle this problem we used contrastive learning, since it was shown in [*Social NCE: Contrastive Learning of Socially-aware Motion Representations*](https://arxiv.org/pdf/2012.11717.pdf) that it helps to provide better results in terms of collision rate without significantly worsening the FDE. Combining both techniques allowed us to stabilize both metrics, ultimately providing one of the highest scores in AICrowd competition.
 
 
 
 <a name="mi_3_3"></a>
 ### 3) Conclusion
 
+The field of autonomous vehicles encompasses various pillars among which “perceiving”, “predicting” and “planning”. Most research has so far focused on “perceiving”. In fact, the "predicting" part (i.e. forecasting) is just as important and crucial for the next step which consists in planning a trajectory. In this project, we have discovered and implemented various methods to tackle the challenges related to pedestrian trajectory forecasting. Those challenges are following:
 
-This is the conclusion!!
+- Sequence Modelling: Effectively encoding the past trajectories to predict the future trajectories.
+- Presence of Social Interactions: The future trajectory of a pedestrian is also affected by motion of surrounding pedestrians.
+- Multimodality: Given the past history, multiple futures are plausible.
+
+Thanks to the provided TrajNet++ framework, we began this journey with a simple Vanilla model and ended up with an advanced Social GAN without discriminator able to output multimodal futures and whose loss combines advantages from variety loss and NCE loss. The picture below is taken from the [reference paper](https://arxiv.org/pdf/2012.11717.pdf) and illustrates the social contrastive learning concept. Combined with a multimodal baseline such as Social GAN, the contrastive learning method promotes the social awareness of neural motion models for various possible futures. We hope that the idea of putting these two techniques together can contribute in some way to the development of socially-aware AI.
+
+
+<img src="README_figures/milestone_3/social_contrastive_learning.png">
 
 
 
