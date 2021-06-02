@@ -319,13 +319,7 @@ class Trainer(object):
         rel_output_list, outputs, scores_real, scores_fake, batch_feat = self.model(observed, batch_scene_goal, batch_split, prediction_truth,
                                                                         step_type=step_type, pred_length=self.pred_length)
 
-        import pickle
-        with open("outputs_saved.pkl", 'wb') as f:
-            pickle.dump(outputs[0], f)
-
         loss, lossContrast = self.loss_criterion(rel_output_list, targets, batch_split, scores_fake, scores_real, step_type, batch_scene, batch_feat)
-
-        5/0
 
         if step_type == 'g':
             self.g_optimizer.zero_grad()
@@ -501,7 +495,7 @@ class Trainer(object):
 
 
         (sample_pos, sample_neg) = self._sampling_spatial(batch_scene, batch_split)
-        visualize = 1
+        visualize = 0
 
 
         if visualize:

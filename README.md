@@ -44,10 +44,11 @@ TrajNet++ is a large scale interaction-centric trajectory forecasting benchmark 
 
 3. [ Multimodal Prediction & TrajNet++ Challenge ](#mi_3)
 
- &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.1 [ Visualizations ](#mi_3_vis) 
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.1 [ Implementation details ](#mi_3_1) 
  
- &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.2 [ Qualitative evaluation ](#mi_1_qual_eval)
-  
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.2 [ Results ](#mi_3_2)
+ 
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.3 [ Conclusion ](#mi_3_3) 
 
 <a name="mi_1"></a>
 ## ᐅ Milestone 1: Getting Started
@@ -188,4 +189,29 @@ Concerning the FDE (Final Displacement Error), even if this metric didn't decrea
 To sum up, the overall best performing model we trained (i.e. the one embedding jointly the lowest FDE and COL-I) is the one of submission 11. As said previously, the learning rate must be chosen wisely to allow the model to learn effectively. In our case, we have chosen to keep its default value (1e-3). In the first submissions we made, we started with a model that we had not submitted for milestone 1, but that we had trained to 30 epochs. Later, for fairer comparisons, we chose rather to fine-tune the best model we had submitted to AICrowd (i.e. the one from submission 2 of milestone 1 trained to 25 epochs) even though it has been trained on 5 less epochs. We also observed that there doesn't seem to be much improvement between 10 and 15 additional epochs. Indeed, the learning curve should apparently gently tend towards a zero slope from 10 additional epochs. Finally, the contrastive weight (introduced in milestone 2) was the new critical hyperparameter we had to tune. From our tests, we deduce that an optimal value for this parameter is situated between 0.5 and 3 in order to influence the global loss in a reasonable way and to reduce the COL-I metric.
 
 
+<a name="mi_3"></a>
 ## ᐅ Multimodal Prediction & TrajNet++ Challenge
+
+<a name="mi_3_1"></a>
+### 1) Implementation details
+
+
+
+
+
+<a name="mi_3_2"></a>
+### 2) Results
+
+
+
+
+
+
+<a name="mi_3_3"></a>
+### 3) Conclusion
+
+
+
+
+
+

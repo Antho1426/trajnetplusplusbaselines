@@ -92,7 +92,7 @@ class SGAN(torch.nn.Module):
         n_predict: Int
             Length of sequence to be predicted during test time
         step_type : 'g' / 'd'
-            Determines to train the gnerator / discriminator
+            Determines to train the generator / discriminator
         pred_length:
             Length of prediction sequence
 
@@ -106,7 +106,7 @@ class SGAN(torch.nn.Module):
             Each element of the list is Tensor [pred_length, num_tracks, 2]
             Predicted positions of pedestrians i.e. absolute positions
         scores_real : Tensor [batch_size, ]
-            Discriminator scores of groundtruth primary tracks
+            Discriminator scores of ground truth primary tracks
         scores_fake : Tensor [batch_size, ]
             Discriminator scores of prediction primary tracks
         """
