@@ -53,11 +53,11 @@ The purpose of this first milestone is to get used to work with the TrajNet++ fr
 
 Visualizations of 3 test scenes qualitatively comparing outputs of the *Vanilla* model and *D-Grid* model both trained during 2 epochs:
 
-<img src="milestone_1_predictions_vanilla_d-grid/visualize.scene46482.png" style="height:300px;">
+<img src="README_figures/milestone_1/predictions_vanilla_d-grid/visualize.scene46482.png" style="height:300px;">
 
-<img src="milestone_1_predictions_vanilla_d-grid/visualize.scene44949.png" style="height:300px;">
+<img src="README_figures/milestone_1/predictions_vanilla_d-grid/visualize.scene44949.png" style="height:300px;">
 
-<img src="milestone_1_predictions_vanilla_d-grid/visualize.scene47642.png" style="height:300px;">
+<img src="README_figures/milestone_1/predictions_vanilla_d-grid/visualize.scene47642.png" style="height:300px;">
 
 Those 3 visualizations clearly demonstrate the superiority of the *D-Grid* model over the *Vanilla*  one in terms of both Average Displacement Error (ADE) and Final Displacement Error (FDE) already for only 2 epochs of training.
 
@@ -79,7 +79,7 @@ python -m trajnetbaselines.lstm.trainer --epoch 2 --path five_parallel_synth_spl
 
 Qualitative evaluation (Results.png):
 
-<img src="Results.png" style="height:500px;">
+<img src="README_figures/milestone_1/Results.png">
 
 
 <a name="mi_2"></a>
@@ -106,7 +106,7 @@ Here is how our spatial sampling is performed:
 
 Example of scene with 4 neighbours presenting both positive and negative samples used to train our model following the safety-driven sampling strategy proposed in the [reference paper](https://arxiv.org/pdf/2012.11717.pdf):
 
-<img src="milestone_2_positive_and_negative_sampling_visualizations/sampling_scene_4.png" style="height:300px;">
+<img src="README_figures/milestone_2/positive_and_negative_sampling_visualizations/sampling_scene_4.png" style="height:300px;">
 
 
 <a name="mi_2_cli"></a>
