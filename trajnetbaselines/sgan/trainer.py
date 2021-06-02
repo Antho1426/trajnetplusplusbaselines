@@ -318,8 +318,15 @@ class Trainer(object):
 
         rel_output_list, outputs, scores_real, scores_fake, batch_feat = self.model(observed, batch_scene_goal, batch_split, prediction_truth,
                                                                         step_type=step_type, pred_length=self.pred_length)
+
+        import pickle
+        with open("outputs_saved.pkl", 'wb') as f:
+            pickle.dump(outputs[0], f)
+
         loss, lossContrast = self.loss_criterion(rel_output_list, targets, batch_split, scores_fake, scores_real, step_type, batch_scene, batch_feat)
 
+
+        5/0
         if step_type == 'g':
             self.g_optimizer.zero_grad()
             loss.backward()
@@ -509,9 +516,18 @@ class Trainer(object):
 
 
         (sample_pos, sample_neg) = self._sampling_spatial(batch_scene, batch_split)
-        visualize = 0
+        visualize = 1
+
+
         if visualize:
             print("VISUALIZING")
+
+
+
+
+            with open('outputs_saved.pkl', 'rb') as f:
+                outputs_saved = pickle.load(f)
+
             for i in range(batch_split.shape[0] - 1):  # for each scene
 
                 import matplotlib
@@ -535,10 +551,18 @@ class Trainer(object):
                 ax.scatter(batch_scene[self.obs_length, batch_split[i] + 1:batch_split[i + 1], 0].view(-1),
                            batch_scene[self.obs_length, batch_split[i] + 1:batch_split[i + 1], 1].view(-1),
                            label="neighbours true pos")
+
                 # Negative sample
                 ax.scatter(sample_neg[i, :, 0].view(-1),
                            sample_neg[i, :, 1].view(-1),
                            label="negative sample")
+                # Trajectory planned
+                #outputs_saved = outputs_saved.detach().numpy()
+                ax.scatter(outputs_saved[:, i, 0].detach(),
+                           outputs_saved[:, i, 1].detach(),
+                           label="trajectories")
+
+
 
                 ax.legend()
                 ax.set_aspect('equal')
