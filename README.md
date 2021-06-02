@@ -178,6 +178,19 @@ Here is our results comparison in terms of FDE and Col-I of our D-LSTM models tr
 
 [*Submission 11 link*](https://www.aicrowd.com/challenges/trajnet-a-trajectory-forecasting-challenge/submissions/139231).
 
+Commands used to further train the model of milestone 1 and obtain similar results to the ones of submission 11:
+
+*Training on real_data*
+```
+python -m trajnetbaselines.lstm.trainer --path real_data --type directional --augment --epochs 15 --contrast_weight 0.5 --lr 1e-3 --load-full-state OUTPUT_BLOCK/real_data/lstm_directional_None.pkl.epoch25.state
+```
+
+*Training on synth_data*
+```
+python -m trajnetbaselines.lstm.trainer --path synth_data --goals --type directional --augment --epochs 15 --contrast_weight 0.5 --lr 1e-3 --load-full-state OUTPUT_BLOCK/synth_data/lstm_goals_directional_None.pkl.epoch25.state
+```
+
+
 
 <a name="mi_2_obs"></a>
 ### 5) Observations
@@ -219,7 +232,7 @@ We trained Social GAN (with the interaction module of type `social`) and conditi
 | Social GAN | 1.33 | 8.11  |
 | VAE        | 4.92 | 14.98 |
 
-The next table summarizes the results in terms of FDE and COL-I we obtained from AICrowd using our Social GAN without discriminator and contrastive learning for three different values of the `contrast_weight` parameter.
+The next table summarizes the results in terms of FDE and COL-I we obtained from AICrowd using our Social GAN without discriminator and contrastive learning for three different values of the `contrast_weight` parameter. Here again, we trained our models from scratch during 15 epochs, with a learning rate of 1e-3.
 
 | contrast_weight | FDE  | COL-I |
 |-----------------|------|-------|
@@ -229,7 +242,23 @@ The next table summarizes the results in terms of FDE and COL-I we obtained from
 
 [*Model with `contrast_weight=1` link*](https://www.aicrowd.com/challenges/trajnet-a-trajectory-forecasting-challenge/submissions/142876).
 
-As we can observe, SGAN generally provides better results than VAE which presents much higher FDE and COL-I scores. In addition to this, our method combining SGAN without the discriminator and contrastive learning (second table) tends to perform better than the standard SGAN available in the TrajNet++ framework. Focusing now only on the second table, it can be seen that the model with `contrast_weight` of 2 presents the smallest COL-I with a value of 6.26. This value is much higher than what we obtained in milestone 2 where we bottomed out at a value of 5.25. Finally, the smallest FDE score we ever achieved with a value of **1.17** has been made possible with the model using the `contrast_weight` parameter of 1. To assess the validity of the FDE score, we trained our model with `contrast_weight` of 1 on the `five_parallel_synth` dataset for which we have the ground truth. We then run the model and predicted a scene using the built-in visualization feature of TrajNet++. Following figure depicts this scene in which it can be noticed that the predicted trajectory of the primary pedestrian (thick blue line) matches pretty well the ground truth (thick black line).
+As we can observe, SGAN generally provides better results than VAE which presents much higher FDE and COL-I scores. In addition to this, our method combining SGAN without the discriminator and contrastive learning (second table) tends to perform better than the standard SGAN available in the TrajNet++ framework. Focusing now only on the second table, it can be seen that the model with `contrast_weight` of 2 presents the smallest COL-I with a value of 6.26. This value is much higher than what we obtained in milestone 2 where we bottomed out at a value of 5.25. Finally, the smallest FDE score we ever achieved with a value of **1.17** has been made possible with the model using the `contrast_weight` parameter of 1.
+
+The commands used to train this model are following:
+
+*Training on real_data*
+```
+python -m trajnetbaselines.sgan.trainer --path real_data --type social --augment --epochs 15 --d_steps 0 --contrast_weight 1 --save_every 1
+```
+
+*Training on synth_data*
+```
+python -m trajnetbaselines.sgan.trainer --path synth_data --goals --type social --augment --epochs 15 --d_steps 0 --contrast_weight 1 --save_every 1
+```
+
+Note that `--d_steps 0` is used to avoid training the discriminator and hence “discard” it.
+
+To assess the validity of the low FDE score we got, we trained our model with `contrast_weight` of 1 on the `five_parallel_synth` dataset for which we have the ground truth. We then run the model and predicted a scene using the built-in visualization feature of TrajNet++. Following figure depicts this scene in which it can be noticed that the predicted trajectory of the primary pedestrian (thick blue line) matches pretty well the ground truth (thick black line).
 
 **Trajectories visualization vs ground truth**
 
